@@ -21,6 +21,7 @@ import re
 import subprocess
 import sys
 import threading
+import time
 from dataclasses import dataclass, asdict
 from typing import Literal, Optional
 
@@ -361,6 +362,10 @@ class VoiceModePopup(ctk.CTk):
         self.wait_for_response = wait_for_response
         self.result = {"type": "dismissed", "response": None}
 
+        # Minimum display duration (5 seconds)
+        self._creation_time = time.time()
+        self._min_display_duration = 5.0  # seconds
+
         # Window setup
         width = config.get("width", 500)
         height = config.get("height", 600)
@@ -478,12 +483,22 @@ class VoiceModePopup(ctk.CTk):
             # Esc to close
             self.bind("<Escape>", lambda e: self._on_dismiss())
 
-            # Note: No auto-close - notification stays until manually dismissed
+            # Note: Auto-dismiss after minimum display duration
 
-        # Timeout (only if explicitly set)
+        # Auto-close handling
         timeout = config.get("timeout")
         if timeout:
-            self.after(int(timeout * 1000), self._on_timeout)
+            # Schedule timeout, but ensure it respects minimum display duration
+            timeout_ms = int(timeout * 1000)
+            min_display_ms = int(self._min_display_duration * 1000)
+            actual_timeout_ms = max(timeout_ms, min_display_ms)
+            self.after(actual_timeout_ms, self._on_timeout)
+        else:
+            # No explicit timeout, but still auto-close after minimum display duration
+            # Only for non-interactive mode (wait_for_response=False)
+            if not wait_for_response:
+                min_display_ms = int(self._min_display_duration * 1000)
+                self.after(min_display_ms, self._on_timeout)
 
     def _add_message(self, text, is_user=False):
         """Add a message bubble to the chat."""
@@ -547,18 +562,26 @@ class VoiceModePopup(ctk.CTk):
 
     def _on_escape(self, event=None):
         global result
-        result = {"type": "cancelled", "response": None}
-        self.quit()
+        if self._can_close():
+            result = {"type": "cancelled", "response": None}
+            self.quit()
 
     def _on_dismiss(self):
         global result
-        result = {"type": "dismissed", "response": None}
-        self.quit()
+        if self._can_close():
+            result = {"type": "dismissed", "response": None}
+            self.quit()
 
     def _on_timeout(self):
         global result
-        result = {"type": "timeout", "response": None}
-        self.quit()
+        if self._can_close():
+            result = {"type": "timeout", "response": None}
+            self.quit()
+
+    def _can_close(self) -> bool:
+        """Check if minimum display duration has elapsed."""
+        elapsed = time.time() - self._creation_time
+        return elapsed >= self._min_display_duration
 
     def _auto_close(self):
         global result
