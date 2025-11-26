@@ -156,14 +156,14 @@ async def startup_initialization():
     """Initialize services on startup based on configuration"""
     if voice_mode.config._startup_initialized:
         return
-    
+
     voice_mode.config._startup_initialized = True
     logger.info("Running startup initialization...")
-    
+
     # Initialize provider registry
     logger.info("Initializing provider registry...")
     await provider_registry.initialize()
-    
+
     # Check if we should auto-start Kokoro
     auto_start_kokoro = os.getenv("VOICE_MODE_AUTO_START_KOKORO", "").lower() in ("true", "1", "yes", "on")
     if auto_start_kokoro:
@@ -173,7 +173,7 @@ async def startup_initialization():
                 base_url = 'http://127.0.0.1:8880'  # Kokoro default
                 health_url = f"{base_url}/health"
                 response = await client.get(health_url)
-                
+
                 if response.status_code == 200:
                     logger.info("Kokoro TTS is already running externally")
                 else:
@@ -193,10 +193,10 @@ async def startup_initialization():
                         env={**os.environ}
                     )
                     service_processes["kokoro"] = process
-                    
+
                     # Wait a moment for it to start
                     await asyncio.sleep(2.0)
-                    
+
                     # Verify it started
                     if process.poll() is None:
                         logger.info(f"✓ Kokoro TTS started successfully (PID: {process.pid})")
@@ -204,7 +204,7 @@ async def startup_initialization():
                         logger.error("Failed to start Kokoro TTS")
             except Exception as e:
                 logger.error(f"Error auto-starting Kokoro: {e}")
-    
+
     # Log initial status
     logger.info("Service initialization complete")
 
@@ -288,7 +288,7 @@ async def text_to_speech_with_failover(
 ) -> Tuple[bool, Optional[dict], Optional[dict]]:
     """
     Text to speech with automatic failover to next available endpoint.
-    
+
     Returns:
         Tuple of (success, tts_metrics, tts_config)
     """
@@ -414,15 +414,15 @@ async def play_audio_feedback(
     # Use parameter override if provided, otherwise use global setting
     if enabled is False:
         return
-    
+
     # If enabled is None, use global setting
     if enabled is None:
         enabled = AUDIO_FEEDBACK_ENABLED
-    
+
     # Skip if disabled
     if not enabled:
         return
-    
+
     try:
         # Play appropriate chime with optional delay overrides
         if text == "listening":
@@ -451,17 +451,17 @@ def record_audio(duration: float) -> np.ndarray:
             logger.debug(f"Recording config - Sample rate: {SAMPLE_RATE}Hz, Channels: {CHANNELS}, dtype: int16")
         except Exception as dev_e:
             logger.error(f"Error querying audio devices: {dev_e}")
-    
+
     # Save current stdio state
     import sys
     original_stdin = sys.stdin
     original_stdout = sys.stdout
     original_stderr = sys.stderr
-    
+
     try:
         samples_to_record = int(duration * SAMPLE_RATE)
         logger.debug(f"Recording {samples_to_record} samples...")
-        
+
         recording = sd.rec(
             samples_to_record,
             samplerate=SAMPLE_RATE,
@@ -469,29 +469,29 @@ def record_audio(duration: float) -> np.ndarray:
             dtype=np.int16
         )
         sd.wait()
-        
+
         flattened = recording.flatten()
         logger.info(f"✓ Recorded {len(flattened)} samples")
-        
+
         if DEBUG:
             logger.debug(f"Recording stats - Min: {flattened.min()}, Max: {flattened.max()}, Mean: {flattened.mean():.2f}")
             # Check if recording contains actual audio (not silence)
             rms = np.sqrt(np.mean(flattened.astype(float) ** 2))
             logger.debug(f"RMS level: {rms:.2f} ({'likely silence' if rms < 100 else 'audio detected'})")
-        
+
         return flattened
-        
+
     except Exception as e:
         logger.error(f"Recording failed: {e}")
         logger.error(f"Audio config when error occurred - Sample rate: {SAMPLE_RATE}, Channels: {CHANNELS}")
-        
+
         # Check if this is a device error that might be recoverable
         error_str = str(e).lower()
-        if any(err in error_str for err in ['device unavailable', 'device disconnected', 
+        if any(err in error_str for err in ['device unavailable', 'device disconnected',
                                              'invalid device', 'unanticipated host error',
                                              'portaudio error']):
             logger.info("Audio device error detected - attempting to reinitialize audio system")
-            
+
             # Try to reinitialize sounddevice
             try:
                 # Get current default device info before reinit
@@ -500,10 +500,10 @@ def record_audio(duration: float) -> np.ndarray:
                     old_device_name = old_device.get('name', 'Unknown')
                 except:
                     old_device_name = 'Previous device'
-                
+
                 sd._terminate()
                 sd._initialize()
-                
+
                 # Get new default device info
                 try:
                     new_device = sd.query_devices(kind='input')
@@ -511,26 +511,26 @@ def record_audio(duration: float) -> np.ndarray:
                     logger.info(f"Audio system reinitialized - switched from '{old_device_name}' to '{new_device_name}'")
                 except:
                     logger.info("Audio system reinitialized - retrying with new default device")
-                
+
                 # Wait a moment for the system to stabilize
                 import time as time_module
                 time_module.sleep(0.5)
-                
+
                 # Try recording again with the new device (recursive call)
                 logger.info("Retrying recording with new audio device...")
                 return record_audio(duration)
-                
+
             except Exception as reinit_error:
                 logger.error(f"Failed to reinitialize audio: {reinit_error}")
                 # Fall through to normal error handling
-        
+
         # Import here to avoid circular imports
         from voice_mode.utils.audio_diagnostics import get_audio_error_help
-        
+
         # Get helpful error message
         help_message = get_audio_error_help(e)
         logger.error(f"\n{help_message}")
-        
+
         # Try to get more info about audio devices
         try:
             devices = sd.query_devices()
@@ -540,7 +540,7 @@ def record_audio(duration: float) -> np.ndarray:
                     logger.error(f"  {i}: {device['name']} (inputs: {device['max_input_channels']})")
         except Exception as dev_e:
             logger.error(f"Cannot query audio devices: {dev_e}")
-        
+
         return np.array([])
     finally:
         # Restore stdio if it was changed
@@ -554,29 +554,29 @@ def record_audio(duration: float) -> np.ndarray:
 
 def record_audio_with_silence_detection(max_duration: float, disable_silence_detection: bool = False, min_duration: float = 0.0, vad_aggressiveness: Optional[int] = None) -> Tuple[np.ndarray, bool]:
     """Record audio from microphone with automatic silence detection.
-    
+
     Uses WebRTC VAD to detect when the user stops speaking and automatically
     stops recording after a configurable silence threshold.
-    
+
     Args:
         max_duration: Maximum recording duration in seconds
         disable_silence_detection: If True, disables silence detection and uses fixed duration recording
         min_duration: Minimum recording duration before silence detection can stop (default: 0.0)
         vad_aggressiveness: VAD aggressiveness level (0-3). If None, uses VAD_AGGRESSIVENESS from config
-        
+
     Returns:
         Tuple of (audio_data, speech_detected):
             - audio_data: Numpy array of recorded audio samples
             - speech_detected: Boolean indicating if speech was detected during recording
     """
-    
+
     logger.info(f"record_audio_with_silence_detection called - VAD_AVAILABLE={VAD_AVAILABLE}, DISABLE_SILENCE_DETECTION={DISABLE_SILENCE_DETECTION}, min_duration={min_duration}")
-    
+
     if not VAD_AVAILABLE:
         logger.warning("webrtcvad not available, falling back to fixed duration recording")
         # For fallback, assume speech is present since we can't detect
         return (record_audio(max_duration), True)
-    
+
     if DISABLE_SILENCE_DETECTION or disable_silence_detection:
         if disable_silence_detection:
             logger.info("Silence detection disabled for this interaction by request")
@@ -584,46 +584,46 @@ def record_audio_with_silence_detection(max_duration: float, disable_silence_det
             logger.info("Silence detection disabled globally via VOICEMODE_DISABLE_SILENCE_DETECTION")
         # For fallback, assume speech is present since we can't detect
         return (record_audio(max_duration), True)
-    
+
     logger.info(f"🎤 Recording with silence detection (max {max_duration}s)...")
-    
+
     try:
         # Initialize VAD with provided aggressiveness or default
         effective_vad_aggressiveness = vad_aggressiveness if vad_aggressiveness is not None else VAD_AGGRESSIVENESS
         vad = webrtcvad.Vad(effective_vad_aggressiveness)
-        
+
         # Calculate chunk size (must be 10, 20, or 30ms worth of samples)
         chunk_samples = int(SAMPLE_RATE * VAD_CHUNK_DURATION_MS / 1000)
         chunk_duration_s = VAD_CHUNK_DURATION_MS / 1000
-        
+
         # WebRTC VAD only supports 8000, 16000, or 32000 Hz
         # We'll tell VAD we're using 16kHz even though we're recording at 24kHz
         # This requires adjusting our chunk size to match what VAD expects
         vad_sample_rate = 16000
         vad_chunk_samples = int(vad_sample_rate * VAD_CHUNK_DURATION_MS / 1000)
-        
+
         # Recording state
         chunks = []
         silence_duration_ms = 0
         recording_duration = 0
         speech_detected = False
         stop_recording = False
-        
+
         # Use a queue for thread-safe communication
         import queue
         audio_queue = queue.Queue()
-        
+
         # Save stdio state
         import sys
         original_stdin = sys.stdin
         original_stdout = sys.stdout
         original_stderr = sys.stderr
-        
+
         logger.debug(f"VAD config - Aggressiveness: {effective_vad_aggressiveness} (param: {vad_aggressiveness}, default: {VAD_AGGRESSIVENESS}), "
                     f"Silence threshold: {SILENCE_THRESHOLD_MS}ms, "
                     f"Min duration: {MIN_RECORDING_DURATION}s, "
                     f"Initial grace period: {INITIAL_SILENCE_GRACE_PERIOD}s")
-        
+
         if VAD_DEBUG:
             logger.info(f"[VAD_DEBUG] Starting VAD recording with config:")
             logger.info(f"[VAD_DEBUG]   max_duration: {max_duration}s")
@@ -633,14 +633,14 @@ def record_audio_with_silence_detection(max_duration: float, disable_silence_det
             logger.info(f"[VAD_DEBUG]   Silence threshold: {SILENCE_THRESHOLD_MS}ms")
             logger.info(f"[VAD_DEBUG]   Sample rate: {SAMPLE_RATE}Hz (VAD using {vad_sample_rate}Hz)")
             logger.info(f"[VAD_DEBUG]   Chunk duration: {VAD_CHUNK_DURATION_MS}ms")
-        
+
         def audio_callback(indata, frames, time, status):
             """Callback for continuous audio stream"""
             if status:
                 logger.warning(f"Audio stream status: {status}")
                 # Check for device-related errors
                 status_str = str(status).lower()
-                if any(err in status_str for err in ['device unavailable', 'device disconnected', 
+                if any(err in status_str for err in ['device unavailable', 'device disconnected',
                                                       'invalid device', 'unanticipated host error',
                                                       'stream is stopped', 'portaudio error']):
                     # Signal that we should stop recording due to device error
@@ -648,7 +648,7 @@ def record_audio_with_silence_detection(max_duration: float, disable_silence_det
                     return
             # Put the audio data in the queue for processing
             audio_queue.put(indata.copy())
-        
+
         try:
             # Create continuous input stream
             with sd.InputStream(samplerate=SAMPLE_RATE,
@@ -656,24 +656,24 @@ def record_audio_with_silence_detection(max_duration: float, disable_silence_det
                                dtype=np.int16,
                                callback=audio_callback,
                                blocksize=chunk_samples):
-                
+
                 logger.debug("Started continuous audio stream")
-                
+
                 while recording_duration < max_duration and not stop_recording:
                     try:
                         # Get audio chunk from queue with timeout
                         chunk = audio_queue.get(timeout=0.1)
-                        
+
                         # Check for error sentinel
                         if chunk is None:
                             logger.error("Audio device error detected - stopping recording")
                             # Raise an exception to trigger recovery logic
                             raise sd.PortAudioError("Audio device disconnected or unavailable")
-                        
+
                         # Flatten for consistency
                         chunk_flat = chunk.flatten()
                         chunks.append(chunk_flat)
-                        
+
                         # For VAD, we need to downsample from 24kHz to 16kHz
                         # Use scipy's resample for proper downsampling
                         from scipy import signal
@@ -683,7 +683,7 @@ def record_audio_with_silence_detection(max_duration: float, disable_silence_det
                         # Take exactly the number of samples VAD expects
                         vad_chunk = vad_chunk[:vad_chunk_samples].astype(np.int16)
                         chunk_bytes = vad_chunk.tobytes()
-                        
+
                         # Check if chunk contains speech
                         try:
                             is_speech = vad.is_speech(chunk_bytes, vad_sample_rate)
@@ -695,7 +695,7 @@ def record_audio_with_silence_detection(max_duration: float, disable_silence_det
                         except Exception as vad_e:
                             logger.warning(f"VAD error: {vad_e}, treating as speech")
                             is_speech = True
-                        
+
                         # State machine for speech detection
                         if not speech_detected:
                             # WAITING_FOR_SPEECH state
@@ -719,7 +719,7 @@ def record_audio_with_silence_detection(max_duration: float, disable_silence_det
                                     logger.info(f"[VAD_DEBUG] Accumulating silence: {silence_duration_ms}/{SILENCE_THRESHOLD_MS}ms, t={recording_duration:.1f}s")
                                 elif silence_duration_ms % 200 == 0:  # Log every 200ms
                                     logger.debug(f"Silence: {silence_duration_ms}ms")
-                                
+
                                 # Check if we should stop due to silence threshold
                                 # Use the larger of MIN_RECORDING_DURATION (global) or min_duration (parameter)
                                 effective_min_duration = max(MIN_RECORDING_DURATION, min_duration)
@@ -732,20 +732,20 @@ def record_audio_with_silence_detection(max_duration: float, disable_silence_det
                                 elif VAD_DEBUG and recording_duration < effective_min_duration:
                                     if int(recording_duration * 1000) % 500 == 0:  # Log every 500ms
                                         logger.info(f"[VAD_DEBUG] Min duration not met: {recording_duration:.1f}s < {effective_min_duration}s")
-                        
+
                         recording_duration += chunk_duration_s
-                            
+
                     except queue.Empty:
                         # No audio data available, continue waiting
                         continue
                     except Exception as e:
                         logger.error(f"Error processing audio chunk: {e}")
                         break
-            
+
             # Concatenate all chunks
             if chunks:
                 full_recording = np.concatenate(chunks)
-                
+
                 if not speech_detected:
                     logger.info(f"✓ Recording completed ({recording_duration:.1f}s) - No speech detected")
                     if VAD_DEBUG:
@@ -754,31 +754,31 @@ def record_audio_with_silence_detection(max_duration: float, disable_silence_det
                     logger.info(f"✓ Recorded {len(full_recording)} samples ({recording_duration:.1f}s) with speech")
                     if VAD_DEBUG:
                         logger.info(f"[VAD_DEBUG] FINAL STATE: Speech was detected, recording complete")
-                
+
                 if DEBUG:
                     # Calculate RMS for debug
                     rms = np.sqrt(np.mean(full_recording.astype(float) ** 2))
                     logger.debug(f"Recording stats - RMS: {rms:.2f}, Speech detected: {speech_detected}")
-                
+
                 # Return tuple: (audio_data, speech_detected)
                 return (full_recording, speech_detected)
             else:
                 logger.warning("No audio chunks recorded")
                 return (np.array([]), False)
-                
+
         except Exception as e:
             logger.error(f"Recording with VAD failed: {e}")
-            
+
             # Import here to avoid circular imports
             from voice_mode.utils.audio_diagnostics import get_audio_error_help
-            
+
             # Check if this is a device error that might be recoverable
             error_str = str(e).lower()
-            if any(err in error_str for err in ['device unavailable', 'device disconnected', 
+            if any(err in error_str for err in ['device unavailable', 'device disconnected',
                                                  'invalid device', 'unanticipated host error',
                                                  'portaudio error']):
                 logger.info("Audio device error detected - attempting to reinitialize audio system")
-                
+
                 # Try to reinitialize sounddevice
                 try:
                     # Get current default device info before reinit
@@ -787,10 +787,10 @@ def record_audio_with_silence_detection(max_duration: float, disable_silence_det
                         old_device_name = old_device.get('name', 'Unknown')
                     except:
                         old_device_name = 'Previous device'
-                    
+
                     sd._terminate()
                     sd._initialize()
-                    
+
                     # Get new default device info
                     try:
                         new_device = sd.query_devices(kind='input')
@@ -798,27 +798,27 @@ def record_audio_with_silence_detection(max_duration: float, disable_silence_det
                         logger.info(f"Audio system reinitialized - switched from '{old_device_name}' to '{new_device_name}'")
                     except:
                         logger.info("Audio system reinitialized - retrying with new default device")
-                    
+
                     # Wait a moment for the system to stabilize
                     import time as time_module
                     time_module.sleep(0.5)
-                    
+
                     # Try recording again with the new device (recursive call in sync context)
                     logger.info("Retrying recording with new audio device...")
                     return record_audio_with_silence_detection(max_duration, disable_silence_detection, min_duration, vad_aggressiveness)
-                    
+
                 except Exception as reinit_error:
                     logger.error(f"Failed to reinitialize audio: {reinit_error}")
                     # Fall through to normal error handling
-            
+
             # Get helpful error message
             help_message = get_audio_error_help(e)
             logger.error(f"\n{help_message}")
-            
+
             logger.info("Falling back to fixed duration recording")
             # For fallback, assume speech is present since we can't detect
             return (record_audio(max_duration), True)
-            
+
         finally:
             # Restore stdio
             if sys.stdin != original_stdin:
@@ -827,7 +827,7 @@ def record_audio_with_silence_detection(max_duration: float, disable_silence_det
                 sys.stdout = original_stdout
             if sys.stderr != original_stderr:
                 sys.stderr = original_stderr
-    
+
     except Exception as e:
         logger.error(f"VAD initialization failed: {e}")
         logger.info("Falling back to fixed duration recording")
@@ -839,26 +839,26 @@ async def check_livekit_available() -> bool:
     """Check if LiveKit is available and has active rooms"""
     start_time = time.time()
     logger.debug("Starting LiveKit availability check")
-    
+
     try:
         from livekit import api
-        
+
         api_url = LIVEKIT_URL.replace("ws://", "http://").replace("wss://", "https://")
         lk_api = api.LiveKitAPI(api_url, LIVEKIT_API_KEY, LIVEKIT_API_SECRET)
-        
+
         # Time the API call specifically
         api_start = time.time()
         rooms = await lk_api.room.list_rooms(api.ListRoomsRequest())
         api_duration = time.time() - api_start
-        
+
         active_rooms = [r for r in rooms.rooms if r.num_participants > 0]
         available = len(active_rooms) > 0
-        
+
         total_duration = time.time() - start_time
         logger.info(f"LiveKit availability check: {available} (API: {api_duration:.3f}s, total: {total_duration:.3f}s)")
-        
+
         return available
-        
+
     except Exception as e:
         total_duration = time.time() - start_time
         logger.info(f"LiveKit availability check failed: {e} (total: {total_duration:.3f}s)")
@@ -872,33 +872,33 @@ async def livekit_converse(message: str, room_name: str = "", timeout: float = 6
         from livekit import rtc, api
         from livekit.agents import Agent, AgentSession
         from livekit.plugins import openai as lk_openai, silero
-        
+
         # Auto-discover room if needed
         if not room_name:
             api_url = LIVEKIT_URL.replace("ws://", "http://").replace("wss://", "https://")
             lk_api = api.LiveKitAPI(api_url, LIVEKIT_API_KEY, LIVEKIT_API_SECRET)
-            
+
             rooms = await lk_api.room.list_rooms(api.ListRoomsRequest())
             for room in rooms.rooms:
                 if room.num_participants > 0:
                     room_name = room.name
                     break
-            
+
             if not room_name:
                 return "No active LiveKit rooms found"
-        
+
         # Setup TTS and STT for LiveKit
         # Get default providers from registry
         tts_config = await get_tts_config()
         stt_config = await get_stt_config()
-        
+
         # Use dummy API key for local services, real key for OpenAI
         tts_api_key = OPENAI_API_KEY if tts_config.get('provider_type') == 'openai' else "dummy-key-for-local"
         stt_api_key = OPENAI_API_KEY if stt_config.get('provider_type') == 'openai' else "dummy-key-for-local"
-        
+
         tts_client = lk_openai.TTS(voice=tts_config['voice'], base_url=tts_config['base_url'], model=tts_config['model'], api_key=tts_api_key)
         stt_client = lk_openai.STT(base_url=stt_config['base_url'], model=stt_config['model'], api_key=stt_api_key)
-        
+
         # Create simple agent that speaks and listens
         class VoiceAgent(Agent):
             def __init__(self):
@@ -912,42 +912,42 @@ async def livekit_converse(message: str, room_name: str = "", timeout: float = 6
                 self.has_spoken = False
                 self.speech_start_time = None
                 self.min_speech_duration = 3.0  # Minimum 3 seconds of speech
-            
+
             async def on_enter(self):
                 await asyncio.sleep(0.5)
                 if self.session:
                     await self.session.say(message, allow_interruptions=True)
                     self.has_spoken = True
-            
+
             async def on_user_speech_started(self):
                 """Track when user starts speaking"""
                 self.speech_start_time = time.time()
                 logger.debug("User started speaking")
-            
+
             async def on_user_turn_completed(self, chat_ctx, new_message):
                 if self.has_spoken and not self.response and new_message.content:
                     content = new_message.content[0]
-                    
+
                     # Check if speech duration was long enough
                     if self.speech_start_time:
                         speech_duration = time.time() - self.speech_start_time
                         if speech_duration < self.min_speech_duration:
                             logger.debug(f"Speech too short ({speech_duration:.1f}s < {self.min_speech_duration}s), ignoring")
                             return
-                    
+
                     # Filter out common ASR hallucinations
                     content_lower = content.lower().strip()
                     if content_lower in ['bye', 'bye.', 'goodbye', 'goodbye.', '...', 'um', 'uh', 'hmm', 'hm']:
                         logger.debug(f"Filtered out ASR hallucination: '{content}'")
                         return
-                    
+
                     # Check if we have actual words (not just punctuation or numbers)
                     words = content.split()
                     has_real_words = any(word.isalpha() and len(word) > 1 for word in words)
                     if not has_real_words:
                         logger.debug(f"No real words detected in: '{content}'")
                         return
-                    
+
                     # Filter out excessive repetitions (e.g., "45, 45, 45, 45...")
                     if len(words) > 5:
                         # Check if last 5 words are all the same
@@ -956,12 +956,12 @@ async def livekit_converse(message: str, room_name: str = "", timeout: float = 6
                             # Trim repetitive ending
                             content = ' '.join(words[:-4])
                             logger.debug(f"Trimmed repetitive ending from ASR output")
-                    
+
                     # Ensure we have meaningful content
                     if content.strip() and len(content.strip()) > 2:
                         self.response = content
                         logger.debug(f"Accepted response: '{content}'")
-        
+
         # Connect and run
         token = api.AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET)
         token.with_identity("voice-mode-bot").with_name("Voice Mode Bot")
@@ -969,14 +969,14 @@ async def livekit_converse(message: str, room_name: str = "", timeout: float = 6
             room_join=True, room=room_name,
             can_publish=True, can_subscribe=True,
         ))
-        
+
         room = rtc.Room()
         await room.connect(LIVEKIT_URL, token.to_jwt())
-        
+
         if not room.remote_participants:
             await room.disconnect()
             return "No participants in LiveKit room"
-        
+
         agent = VoiceAgent()
         # Configure Silero VAD with less aggressive settings for better end-of-turn detection
         vad = silero.VAD.load(
@@ -990,7 +990,7 @@ async def livekit_converse(message: str, room_name: str = "", timeout: float = 6
         )
         session = AgentSession(vad=vad)
         await session.start(room=room, agent=agent)
-        
+
         # Wait for response
         start_time = time.time()
         while time.time() - start_time < timeout:
@@ -998,10 +998,10 @@ async def livekit_converse(message: str, room_name: str = "", timeout: float = 6
                 await room.disconnect()
                 return agent.response
             await asyncio.sleep(0.1)
-        
+
         await room.disconnect()
         return f"No response within {timeout}s"
-        
+
     except Exception as e:
         logger.error(f"LiveKit error: {e}")
         return f"LiveKit error: {str(e)}"
@@ -1013,7 +1013,7 @@ async def converse(
     wait_for_response: Union[bool, str] = True,
     listen_duration_max: float = DEFAULT_LISTEN_DURATION,
     listen_duration_min: float = 2.0,
-    transport: Literal["auto", "local", "livekit"] = "auto",
+    transport: Literal["auto", "local", "livekit", "notify"] = "auto",
     room_name: str = "",
     timeout: float = 60.0,
     voice: Optional[str] = None,
@@ -1046,6 +1046,7 @@ KEY PARAMETERS:
 • wait_for_response (bool, default: true): Listen for response after speaking
 • listen_duration_max (number, default: 120): Max listen time in seconds
 • listen_duration_min (number, default: 2.0): Min recording time before silence detection
+• transport ("auto"|"local"|"livekit"|"notify"): Transport method. "notify" uses popup window.
 • voice (string): TTS voice name (auto-selected unless specified)
 • tts_provider ("openai"|"kokoro"): Provider selection (auto-selected unless specified)
 • disable_silence_detection (bool, default: false): Disable auto-stop on silence
@@ -1070,7 +1071,7 @@ consult the MCP resources listed above.
         chime_enabled = chime_enabled.lower() in ('true', '1', 'yes', 'on')
     if skip_tts is not None and isinstance(skip_tts, str):
         skip_tts = skip_tts.lower() in ('true', '1', 'yes', 'on')
-    
+
     # Convert vad_aggressiveness to integer if provided as string
     if vad_aggressiveness is not None and isinstance(vad_aggressiveness, str):
         try:
@@ -1079,7 +1080,7 @@ consult the MCP resources listed above.
         except ValueError:
             logger.warning(f"Invalid VAD aggressiveness value '{vad_aggressiveness}', using default")
             vad_aggressiveness = None
-    
+
     # Determine whether to skip TTS
     if skip_tts is not None:
         # Parameter explicitly set, use it
@@ -1087,26 +1088,26 @@ consult the MCP resources listed above.
     else:
         # Use global setting
         should_skip_tts = SKIP_TTS
-    
+
     # Convert string speed to float
     if speed is not None and isinstance(speed, str):
         try:
             speed = float(speed)
         except ValueError:
             return f"❌ Error: speed must be a number (got '{speed}')"
-    
+
     # Validate speed parameter range
     if speed is not None:
         if not (0.25 <= speed <= 4.0):
             return f"❌ Error: speed must be between 0.25 and 4.0 (got {speed})"
-    
+
     logger.info(f"Converse: '{message[:50]}{'...' if len(message) > 50 else ''}' (wait_for_response: {wait_for_response})")
-    
+
     # Validate vad_aggressiveness parameter
     if vad_aggressiveness is not None:
         if not isinstance(vad_aggressiveness, int) or vad_aggressiveness < 0 or vad_aggressiveness > 3:
             return f"Error: vad_aggressiveness must be an integer between 0 and 3 (got {vad_aggressiveness})"
-    
+
     # Validate duration parameters
     if wait_for_response:
         if listen_duration_min < 0:
@@ -1116,7 +1117,7 @@ consult the MCP resources listed above.
         if listen_duration_min > listen_duration_max:
             logger.warning(f"listen_duration_min ({listen_duration_min}s) is greater than listen_duration_max ({listen_duration_max}s), using listen_duration_max as minimum")
             listen_duration_min = listen_duration_max
-    
+
     # Check if FFmpeg is available
     ffmpeg_available = getattr(voice_mode.config, 'FFMPEG_AVAILABLE', True)  # Default to True if not set
     if not ffmpeg_available:
@@ -1128,28 +1129,28 @@ consult the MCP resources listed above.
         )
         logger.error(error_msg)
         return f"❌ Error: {error_msg}"
-    
+
     # Run startup initialization if needed
     await startup_initialization()
-    
+
     # Refresh audio device cache to pick up any device changes (AirPods, etc.)
     # This takes ~1ms and ensures we use the current default device
     import sounddevice as sd
     sd._terminate()
     sd._initialize()
-    
+
     # Get event logger and start session
     event_logger = get_event_logger()
     session_id = None
-    
+
     # Check time since last session for AI thinking time
     global last_session_end_time
     current_time = time.time()
-    
+
     if last_session_end_time and wait_for_response:
         time_since_last = current_time - last_session_end_time
         logger.info(f"Time since last session: {time_since_last:.1f}s (AI thinking time)")
-    
+
     # For conversations with responses, create a session
     if event_logger and wait_for_response:
         session_id = event_logger.start_session()
@@ -1158,7 +1159,7 @@ consult the MCP resources listed above.
             event_logger.log_event("TIME_SINCE_LAST_SESSION", {
                 "seconds": time_since_last
             })
-    
+
     # Log tool request start (after session is created)
     if event_logger:
         # If we have a session, the event will be associated with it
@@ -1166,18 +1167,79 @@ consult the MCP resources listed above.
             "wait_for_response": wait_for_response,
             "listen_duration_max": listen_duration_max if wait_for_response else None
         })
-    
+
     # Track execution time and resources
     start_time = time.time()
     if DEBUG:
         import resource
         start_memory = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
         logger.debug(f"Starting converse - Memory: {start_memory} KB")
-    
+
     result = None
     success = False
-    
+
     try:
+        # Handle notify transport specially
+        if transport == "notify":
+            from voice_mode.utils.notify_popup import show_popup, PopupConfig, NotifyPopupResult
+
+            # Configure popup
+            # Use provided timeout if it's not the default 60.0, otherwise None (no timeout)
+            popup_timeout = timeout if timeout != 60.0 else None
+
+            config = PopupConfig(
+                title="VoiceMode Conversation",
+                timeout=popup_timeout,
+                show_history=True,
+                chime_enabled=chime_enabled if chime_enabled is not None else False,
+                theme="auto"
+            )
+
+            # Get history
+            history = []
+            try:
+                conversation_logger = get_conversation_logger()
+                history = conversation_logger.get_recent_exchanges(limit=5)
+            except Exception as e:
+                logger.warning(f"Failed to get history for notify transport: {e}")
+
+            # Show popup
+            logger.info(f"Showing notify popup: '{message[:50]}...'")
+            popup_result = await show_popup(
+                message=message,
+                config=config,
+                history=history,
+                wait_for_response=wait_for_response
+            )
+
+            # Log the exchange
+            try:
+                conversation_logger = get_conversation_logger()
+                conversation_logger.log_notify_exchange(
+                    assistant_message=message,
+                    user_response=popup_result.response,
+                    result_type=popup_result.result_type,
+                )
+            except Exception as e:
+                logger.warning(f"Failed to log notify exchange: {e}")
+
+            # Handle result
+            if popup_result.result_type == "success":
+                if wait_for_response:
+                    return f"User response: {popup_result.response}"
+                else:
+                    return "✓ Message displayed successfully"
+            elif popup_result.result_type == "cancelled":
+                return "User cancelled the popup"
+            elif popup_result.result_type == "dismissed":
+                return "User dismissed the popup"
+            elif popup_result.result_type == "timeout":
+                return f"No response within {popup_timeout}s timeout"
+            elif popup_result.result_type == "empty":
+                return "User submitted empty response"
+            else:
+                return f"Error: Unknown result type: {popup_result.result_type}"
+
         # Determine transport method (only needed when waiting for response)
         if wait_for_response:
             if transport == "auto":
@@ -1244,14 +1306,14 @@ consult the MCP resources listed above.
                             initial_provider=tts_provider,
                             speed=speed
                         )
-                    
+
                     # Add TTS sub-metrics
                     if tts_metrics:
                         timings['ttfa'] = tts_metrics.get('ttfa', 0)
                         timings['tts_gen'] = tts_metrics.get('generation', 0)
                         timings['tts_play'] = tts_metrics.get('playback', 0)
                     timings['tts_total'] = time.perf_counter() - tts_start
-                    
+
                     # Log TTS immediately after it completes
                     if tts_success:
                         try:
@@ -1264,7 +1326,7 @@ consult the MCP resources listed above.
                             if 'tts_play' in timings:
                                 tts_timing_parts.append(f"play {timings['tts_play']:.1f}s")
                             tts_timing_str = ", ".join(tts_timing_parts) if tts_timing_parts else None
-                            
+
                             conversation_logger = get_conversation_logger()
                             conversation_logger.log_tts(
                                 text=message,
@@ -1287,7 +1349,7 @@ consult the MCP resources listed above.
                             )
                         except Exception as e:
                             logger.error(f"Failed to log TTS to JSONL: {e}")
-                    
+
                     if not tts_success:
                         # Check if we have detailed error information
                         if tts_config and tts_config.get('error_type') == 'all_providers_failed':
@@ -1362,7 +1424,7 @@ consult the MCP resources listed above.
 
                     # Brief pause before listening
                     await asyncio.sleep(0.5)
-                    
+
                     # Play "listening" feedback sound
                     await play_audio_feedback(
                         "listening",
@@ -1372,7 +1434,7 @@ consult the MCP resources listed above.
                         chime_leading_silence=chime_leading_silence,
                         chime_trailing_silence=chime_trailing_silence
                     )
-                    
+
                     # Record response
                     logger.info(f"🎤 Listening for {listen_duration_max} seconds...")
 
@@ -1386,14 +1448,14 @@ consult the MCP resources listed above.
                         None, record_audio_with_silence_detection, listen_duration_max, disable_silence_detection, listen_duration_min, vad_aggressiveness
                     )
                     timings['record'] = time.perf_counter() - record_start
-                    
+
                     # Log recording end
                     if event_logger:
                         event_logger.log_event(event_logger.RECORDING_END, {
                             "duration": timings['record'],
                             "samples": len(audio_data)
                         })
-                    
+
                     # Play "finished" feedback sound
                     await play_audio_feedback(
                         "finished",
@@ -1403,21 +1465,21 @@ consult the MCP resources listed above.
                         chime_leading_silence=chime_leading_silence,
                         chime_trailing_silence=chime_trailing_silence
                     )
-                    
+
                     # Mark the end of recording - this is when user expects response to start
                     user_done_time = time.perf_counter()
                     logger.info(f"Recording finished at {user_done_time - tts_start:.1f}s from start")
-                    
+
                     if len(audio_data) == 0:
                         result = "Error: Could not record audio"
                         return result
-                    
+
                     # Check if no speech was detected
                     if not speech_detected:
                         logger.info("No speech detected during recording - skipping STT processing")
                         response_text = None
                         timings['stt'] = 0.0
-                        
+
                         # Still save the audio if configured
                         if SAVE_AUDIO and AUDIO_DIR:
                             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -1429,7 +1491,7 @@ consult the MCP resources listed above.
                         # Log STT start
                         if event_logger:
                             event_logger.log_event(event_logger.STT_START)
-                        
+
                         stt_start = time.perf_counter()
                         stt_result = await speech_to_text(audio_data, SAVE_AUDIO, AUDIO_DIR if SAVE_AUDIO else None, transport)
                         timings['stt'] = time.perf_counter() - stt_start
@@ -1637,7 +1699,7 @@ consult the MCP resources listed above.
                             event_logger.log_event(event_logger.STT_COMPLETE, {"text": response_text})
                         else:
                             event_logger.log_event(event_logger.STT_NO_SPEECH)
-                    
+
                     # Log STT immediately after it completes (even if no speech detected)
                     try:
                         # Format STT timing
@@ -1647,11 +1709,11 @@ consult the MCP resources listed above.
                         if 'stt' in timings:
                             stt_timing_parts.append(f"stt {timings['stt']:.1f}s")
                         stt_timing_str = ", ".join(stt_timing_parts) if stt_timing_parts else None
-                        
+
                         conversation_logger = get_conversation_logger()
                         # Get STT config for provider info
                         stt_config = await get_stt_config()
-                        
+
                         conversation_logger.log_stt(
                             text=response_text if response_text else "[no speech detected]",
                             model=stt_config.get('model', 'whisper-1'),
@@ -1672,15 +1734,15 @@ consult the MCP resources listed above.
                         )
                     except Exception as e:
                         logger.error(f"Failed to log STT to JSONL: {e}")
-                
+
                 # Calculate total time (use tts_total instead of sub-metrics)
                 main_timings = {k: v for k, v in timings.items() if k in ['tts_total', 'record', 'stt']}
                 total_time = sum(main_timings.values())
-                
+
                 # Format timing strings separately for TTS and STT
                 tts_timing_parts = []
                 stt_timing_parts = []
-                
+
                 # TTS timings
                 if 'ttfa' in timings:
                     tts_timing_parts.append(f"ttfa {timings['ttfa']:.1f}s")
@@ -1688,16 +1750,16 @@ consult the MCP resources listed above.
                     tts_timing_parts.append(f"gen {timings['tts_gen']:.1f}s")
                 if 'tts_play' in timings:
                     tts_timing_parts.append(f"play {timings['tts_play']:.1f}s")
-                
+
                 # STT timings
                 if 'record' in timings:
                     stt_timing_parts.append(f"record {timings['record']:.1f}s")
                 if 'stt' in timings:
                     stt_timing_parts.append(f"stt {timings['stt']:.1f}s")
-                
+
                 tts_timing_str = ", ".join(tts_timing_parts) if tts_timing_parts else None
                 stt_timing_str = ", ".join(stt_timing_parts) if stt_timing_parts else None
-                
+
                 # Keep combined timing for backward compatibility in result message
                 all_timing_parts = []
                 if tts_timing_parts:
@@ -1705,7 +1767,7 @@ consult the MCP resources listed above.
                 if stt_timing_parts:
                     all_timing_parts.extend(stt_timing_parts)
                 timing_str = ", ".join(all_timing_parts) + f", total {total_time:.1f}s"
-                
+
                 # Track statistics for full conversation interaction
                 actual_response = response_text or "[no speech detected]"
                 track_voice_interaction(
@@ -1719,11 +1781,11 @@ consult the MCP resources listed above.
                     success=bool(response_text),  # Success if we got a response
                     error_message=None if response_text else "No speech detected"
                 )
-                
+
                 # End event logging session
                 if event_logger and session_id:
                     event_logger.end_session()
-                
+
                 if response_text:
                     # Save conversation transcription if enabled
                     if SAVE_TRANSCRIPTIONS:
@@ -1738,9 +1800,9 @@ consult the MCP resources listed above.
                             "timestamp": datetime.now().isoformat()
                         }
                         save_transcription(conversation_text, prefix="conversation", metadata=metadata)
-                    
+
                     # Logging already done immediately after TTS and STT complete
-                    
+
                     # Include STT provider in result if known
                     stt_info = f" (STT: {stt_provider})" if 'stt_provider' in locals() and stt_provider != "unknown" else ""
                     result = f"Voice response: {response_text}{stt_info} | Timing: {timing_str}"
@@ -1749,12 +1811,12 @@ consult the MCP resources listed above.
                     result = f"No speech detected | Timing: {timing_str}"
                     success = True  # Not an error, just no speech
                 return result
-                    
+
             except Exception as e:
                 logger.error(f"Local voice error: {e}")
                 if DEBUG:
                     logger.error(f"Traceback: {traceback.format_exc()}")
-                
+
                 # Track failed conversation interaction
                 track_voice_interaction(
                     message=message,
@@ -1767,41 +1829,41 @@ consult the MCP resources listed above.
                     success=False,
                     error_message=str(e)
                 )
-                
+
                 result = f"Error: {str(e)}"
                 return result
-            
+
         else:
             result = f"Unknown transport: {transport}"
             return result
-            
+
     except Exception as e:
         logger.error(f"Unexpected error in converse: {e}")
         if DEBUG:
             logger.error(f"Full traceback: {traceback.format_exc()}")
         result = f"Unexpected error: {str(e)}"
         return result
-        
+
     finally:
         # Log tool request end
         if event_logger:
             log_tool_request_end("converse", success=success)
-        
+
         # Update last session end time for tracking AI thinking time
         if wait_for_response:
             last_session_end_time = time.time()
-        
+
         # Log execution metrics
         elapsed = time.time() - start_time
         logger.info(f"Converse completed in {elapsed:.2f}s")
-        
+
         if DEBUG:
             import resource
             import gc
             end_memory = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
             memory_delta = end_memory - start_memory
             logger.debug(f"Memory delta: {memory_delta} KB (start: {start_memory}, end: {end_memory})")
-            
+
             # Force garbage collection
             collected = gc.collect()
             logger.debug(f"Garbage collected {collected} objects")

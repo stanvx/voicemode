@@ -16,11 +16,12 @@ Natural voice conversations for AI assistants. VoiceMode brings human-like voice
 ## ✨ Features
 
 - **🎙️ Natural Voice Conversations** with Claude Code - ask questions and hear responses
+- **💬 Notify Mode** - text-based popup conversations for silent environments
 - **🗣️ Supports local Voice Models** - works with any OpenAI API compatible STT/TTS services
 - **⚡ Real-time** - low-latency voice interactions with automatic transport selection
 - **🔧 MCP Integration** - seamless with Claude Code (and other MCP clients)
 - **🎯 Silence detection** - automatically stops recording when you stop speaking (no more waiting!)
-- **🔄 Multiple transports** - local microphone or LiveKit room-based communication  
+- **🔄 Multiple transports** - local microphone or LiveKit room-based communication
 
 ## 🎯 Simple Requirements
 
@@ -33,13 +34,13 @@ Natural voice conversations for AI assistants. VoiceMode brings human-like voice
 
 ### Install VoiceMode and dependencies with UV (Recommended)
 
-- Linux (fedora, debian/ubuntu) 
+- Linux (fedora, debian/ubuntu)
 - macOS
 - Windows WSL
 
 ```bash
 # Install VoiceMode MCP python package and dependencies
-curl -LsSf https://astral.sh/uv/install.sh | sh 
+curl -LsSf https://astral.sh/uv/install.sh | sh
 uvx voice-mode-install
 
 # While local voice services can be installed automatically, we recommend

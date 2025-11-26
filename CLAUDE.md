@@ -49,7 +49,7 @@ voicemode config set VOICEMODE_TTS_VOICE nova
 make build-package
 
 # Build development version (auto-versioned)
-make build-dev  
+make build-dev
 
 # Test package installation
 make test-package
@@ -81,6 +81,7 @@ make docs-check
 
 2. **Tool System (`voice_mode/tools/`)**
    - **converse.py**: Primary voice conversation tool with TTS/STT integration
+   - **notify.py**: Text-based popup conversation tool for silent environments
    - **service.py**: Unified service management for Whisper/Kokoro/LiveKit
    - **providers.py**: Provider discovery and registry management
    - **devices.py**: Audio device detection and management

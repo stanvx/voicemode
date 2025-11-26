@@ -48,6 +48,7 @@ dependencies = [
     "livekit-plugins-silero>=0.6.5",
     "click>=8.0.0",
     "pyyaml>=6.0.0",
+    "customtkinter>=5.2.0",  # Modern themed Tkinter for notify popup UI
 ]
 
 [project.optional-dependencies]
@@ -112,7 +113,7 @@ include = [
 ]
 exclude = [
   "**/__pycache__",
-  "**/*.pyc", 
+  "**/*.pyc",
   "**/*.pyo",
   "**/*.pyd",
   "**/.DS_Store",

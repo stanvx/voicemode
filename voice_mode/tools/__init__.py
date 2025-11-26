@@ -105,10 +105,10 @@ def determine_tools_to_load() -> tuple[set[str], str]:
         return tools_to_load, f"legacy mode ({len(tools_to_load)} tools)"
 
     else:
-        # Default - load essential tools only (converse, service)
-        # This provides basic voice interaction and service management
+        # Default - load essential tools only (converse, service, notify)
+        # This provides basic voice interaction, service management, and notifications
         # while significantly reducing token usage in Claude Code
-        default_tools = {"converse", "service"}
+        default_tools = {"converse", "service", "notify"}
         tools_to_load = default_tools & all_tools  # Only load tools that exist
         return tools_to_load, f"default mode ({len(tools_to_load)} tools)"
 

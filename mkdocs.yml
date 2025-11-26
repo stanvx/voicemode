@@ -95,6 +95,8 @@ nav:
     - Whisper.cpp: whisper.cpp.md
     - Kokoro TTS: kokoro.md
     - LiveKit: livekit/README.md
+  - Features:
+    - Notify Mode: guides/notify-mode.md
   - Development:
     - Local Development: local-development-uvx.md
     - Migration Guide: migration-guide.md
