@@ -4,6 +4,14 @@
 # Claude workspace
 .claude/
 
+# GitHub agent artifacts (prevent credential leakage)
+.github/copilot/
+.github/agent/
+.github/**/*.token
+.github/**/*.key
+.github/**/*.secret
+.github/**/*credentials*
+
 # Environment configuration
 .env.local
 .env
