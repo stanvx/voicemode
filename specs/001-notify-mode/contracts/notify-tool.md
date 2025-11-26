@@ -82,13 +82,25 @@
 }
 ```
 
-### User Cancelled
+### User Cancelled (via Cancel button or Escape key)
 ```json
 {
   "content": [
     {
       "type": "text",
-      "text": "User cancelled or dismissed the popup"
+      "text": "User cancelled the popup"
+    }
+  ]
+}
+```
+
+### User Dismissed (via window close button)
+```json
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "User dismissed the popup"
     }
   ]
 }
@@ -178,3 +190,50 @@ If a new `notify` call is made while a popup is already displayed:
 
 - Messages exceeding the visible area are displayed in a scrollable region
 - The full message is always accessible via scrolling
+
+### Conversation History Scroll Behavior
+
+- History is displayed in a scrollable readonly text area above the input field
+- New messages automatically scroll to the bottom (most recent visible)
+- User can scroll up to view earlier messages
+- Maximum 5 exchanges shown (configurable via `history_limit`)
+
+### Platform-Specific Theme Detection
+
+- **macOS**: Uses `defaults read -g AppleInterfaceStyle` to detect dark mode
+- **Windows**: Reads `HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize\AppsUseLightTheme` registry key
+- **Linux**: Uses `gsettings get org.gnome.desktop.interface color-scheme` for GNOME/GTK environments
+- Fallback: Light theme if detection fails
+
+### Platform-Specific Chime Sound Support
+
+- Reuses existing `play_chime_start` and `play_chime_end` functions from `voice_mode.core`
+- Chimes disabled by default for silent use case
+- When enabled, plays start chime on popup appear and end chime on successful submit
+
+### Relationship with `converse` Tool
+
+- `notify` is a parallel alternative to `converse`, not a replacement
+- Both tools share conversation context via the existing `conversation_logger` infrastructure
+- `notify` uses visual popup instead of audio for input/output
+- Users can switch between tools mid-conversation; context is preserved
+
+### Mode Switching Behavior
+
+- Switching from voice mode to notify mode preserves all conversation history
+- The next interaction uses the newly selected mode
+- No explicit "mode switch" command required - simply use the desired tool
+- Conversation logger records both voice and notify exchanges in the same session
+
+### Clipboard Operations
+
+- Text input area supports standard clipboard operations:
+  - **macOS**: Cmd+C (copy), Cmd+V (paste), Cmd+X (cut), Cmd+A (select all)
+  - **Windows/Linux**: Ctrl+C (copy), Ctrl+V (paste), Ctrl+X (cut), Ctrl+A (select all)
+- Clipboard operations are handled by Tkinter's built-in Text widget bindings
+
+### Accessibility
+
+- Screen reader compatibility: Tkinter provides basic accessibility through platform accessibility APIs
+- High contrast mode: Respects system high contrast settings where supported
+- Minimum recommended contrast ratio: 4.5:1 for normal text (WCAG AA)

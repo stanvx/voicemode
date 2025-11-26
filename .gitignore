@@ -7,6 +7,8 @@
 # GitHub agent artifacts (prevent credential leakage)
 .github/copilot/
 .github/agent/
+.github/agents/
+.github/prompts/
 .github/**/*.token
 .github/**/*.key
 .github/**/*.secret
@@ -106,6 +108,7 @@ node_modules/
 *.orig
 social
 recover-voicemode-promote/
+.specify/
 
 # Documentation build output
 site/
@@ -131,3 +134,4 @@ htmlcov/
 .coverage
 .coverage.*
 coverage.xml
+pr_body.txt

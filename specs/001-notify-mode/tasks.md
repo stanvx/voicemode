@@ -23,8 +23,8 @@
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Create notify tool module structure at voice_mode/tools/notify.py
-- [ ] T002 [P] Create popup utility module at voice_mode/utils/notify_popup.py
+- [x] T001 Create notify tool module structure at voice_mode/tools/notify.py
+- [x] T002 [P] Create popup utility module at voice_mode/utils/notify_popup.py
 
 ---
 
@@ -34,11 +34,11 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 Implement base PopupConfig dataclass in voice_mode/utils/notify_popup.py with all configuration fields from data-model.md
-- [ ] T004 [P] Implement ThemeColors dataclass with light/dark theme definitions in voice_mode/utils/notify_popup.py
-- [ ] T005 [P] Implement system theme detection function (detect_dark_mode) in voice_mode/utils/notify_popup.py for macOS, Linux, and Windows
-- [ ] T006 Implement base NotifyPopup class skeleton with threading pattern (queue-based communication) in voice_mode/utils/notify_popup.py
-- [ ] T007 Register notify tool with MCP server using @mcp.tool() decorator in voice_mode/tools/notify.py
+- [x] T003 Implement base PopupConfig dataclass in voice_mode/utils/notify_popup.py with all configuration fields from data-model.md
+- [x] T004 [P] Implement ThemeColors dataclass with light/dark theme definitions in voice_mode/utils/notify_popup.py
+- [x] T005 [P] Implement system theme detection function (detect_dark_mode) in voice_mode/utils/notify_popup.py for macOS, Linux, and Windows
+- [x] T006 Implement base NotifyPopup class skeleton with threading pattern (queue-based communication) in voice_mode/utils/notify_popup.py
+- [x] T007 Register notify tool with MCP server using @mcp.tool() decorator in voice_mode/tools/notify.py
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -52,15 +52,15 @@
 
 ### Implementation for User Story 1
 
-- [ ] T008 [US1] Implement Tkinter window creation with title, size, and always-on-top positioning in voice_mode/utils/notify_popup.py
-- [ ] T009 [US1] Implement message display area using ttk.Label or readonly Text widget in voice_mode/utils/notify_popup.py
-- [ ] T010 [US1] Implement text input area using tk.Text widget with multi-line support in voice_mode/utils/notify_popup.py
-- [ ] T011 [US1] Implement Submit and Cancel buttons with ttk.Button in voice_mode/utils/notify_popup.py
-- [ ] T012 [US1] Implement keyboard bindings (Enter for submit, Escape for cancel) in voice_mode/utils/notify_popup.py
-- [ ] T013 [US1] Implement async wrapper show_popup() using threading and queue pattern in voice_mode/utils/notify_popup.py
-- [ ] T014 [US1] Implement notify tool handler with message parameter and wait_for_response logic in voice_mode/tools/notify.py
-- [ ] T015 [US1] Implement response formatting (success, cancelled, empty input) per contracts/notify-tool.md in voice_mode/tools/notify.py
-- [ ] T016 [US1] Add headless environment detection and error handling in voice_mode/tools/notify.py
+- [x] T008 [US1] Implement Tkinter window creation with title, size, and always-on-top positioning in voice_mode/utils/notify_popup.py
+- [x] T009 [US1] Implement message display area using ttk.Label or readonly Text widget in voice_mode/utils/notify_popup.py
+- [x] T010 [US1] Implement text input area using tk.Text widget with multi-line support in voice_mode/utils/notify_popup.py
+- [x] T011 [US1] Implement Submit and Cancel buttons with ttk.Button in voice_mode/utils/notify_popup.py
+- [x] T012 [US1] Implement keyboard bindings (Enter for submit, Escape for cancel) in voice_mode/utils/notify_popup.py
+- [x] T013 [US1] Implement async wrapper show_popup() using threading and queue pattern in voice_mode/utils/notify_popup.py
+- [x] T014 [US1] Implement notify tool handler with message parameter and wait_for_response logic in voice_mode/tools/notify.py
+- [x] T015 [US1] Implement response formatting (success, cancelled, empty input) per contracts/notify-tool.md in voice_mode/tools/notify.py
+- [x] T016 [US1] Add headless environment detection and error handling in voice_mode/tools/notify.py
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently
 
@@ -74,9 +74,9 @@
 
 ### Implementation for User Story 2
 
-- [ ] T017 [US2] Implement Shift+Enter binding for newline insertion in voice_mode/utils/notify_popup.py
-- [ ] T018 [US2] Configure Text widget with appropriate height (input_rows from config) for multi-line visibility in voice_mode/utils/notify_popup.py
-- [ ] T019 [US2] Add message length validation (1-10,000 characters per contract) in voice_mode/tools/notify.py
+- [x] T017 [US2] Implement Shift+Enter binding for newline insertion in voice_mode/utils/notify_popup.py
+- [x] T018 [US2] Configure Text widget with appropriate height (input_rows from config) for multi-line visibility in voice_mode/utils/notify_popup.py
+- [x] T019 [US2] Add message length validation (1-10,000 characters per contract) in voice_mode/tools/notify.py
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently
 
@@ -90,11 +90,11 @@
 
 ### Implementation for User Story 3
 
-- [ ] T020 [P] [US3] Add platform-specific wm_attributes handling for always-on-top in voice_mode/utils/notify_popup.py
-- [ ] T021 [P] [US3] Add platform-specific focus grabbing (lift, focus_force) in voice_mode/utils/notify_popup.py
-- [ ] T022 [US3] Use ttk themed widgets for native OS appearance in voice_mode/utils/notify_popup.py
-- [ ] T023 [US3] Add window centering logic for primary display in voice_mode/utils/notify_popup.py
-- [ ] T042 [P] [US3] Verify clipboard operations (Ctrl+C/V on Windows/Linux, Cmd+C/V on macOS) work in Text widget - FR-013 coverage
+- [x] T020 [P] [US3] Add platform-specific wm_attributes handling for always-on-top in voice_mode/utils/notify_popup.py
+- [x] T021 [P] [US3] Add platform-specific focus grabbing (lift, focus_force) in voice_mode/utils/notify_popup.py
+- [x] T022 [US3] Use ttk themed widgets for native OS appearance in voice_mode/utils/notify_popup.py
+- [x] T023 [US3] Add window centering logic for primary display in voice_mode/utils/notify_popup.py
+- [x] T042 [P] [US3] Verify clipboard operations (Ctrl+C/V on Windows/Linux, Cmd+C/V on macOS) work in Text widget - FR-013 coverage
 
 **Checkpoint**: At this point, User Stories 1, 2, AND 3 should all work independently
 
@@ -108,8 +108,8 @@
 
 ### Implementation for User Story 4
 
-- [ ] T024 [US4] Integrate with existing conversation_logger for logging text exchanges in voice_mode/tools/notify.py
-- [ ] T025 [US4] Ensure conversation context flows between converse and notify tools via shared logging in voice_mode/tools/notify.py
+- [x] T024 [US4] Integrate with existing conversation_logger for logging text exchanges in voice_mode/tools/notify.py
+- [x] T025 [US4] Ensure conversation context flows between converse and notify tools via shared logging in voice_mode/tools/notify.py
 
 **Checkpoint**: Mode switching preserves conversation context
 
@@ -123,10 +123,10 @@
 
 ### Implementation for User Story 5
 
-- [ ] T026 [US5] Implement conversation history display area using readonly Text widget with scrollbar in voice_mode/utils/notify_popup.py
-- [ ] T027 [US5] Add show_history parameter support (default: true) in voice_mode/utils/notify_popup.py
-- [ ] T028 [US5] Implement history_limit configuration (max 5 messages per data-model.md) in voice_mode/utils/notify_popup.py
-- [ ] T029 [US5] Add auto-scroll to bottom when history is displayed in voice_mode/utils/notify_popup.py
+- [x] T026 [US5] Implement conversation history display area using readonly Text widget with scrollbar in voice_mode/utils/notify_popup.py
+- [x] T027 [US5] Add show_history parameter support (default: true) in voice_mode/utils/notify_popup.py
+- [x] T028 [US5] Implement history_limit configuration (max 5 messages per data-model.md) in voice_mode/utils/notify_popup.py
+- [x] T029 [US5] Add auto-scroll to bottom when history is displayed in voice_mode/utils/notify_popup.py
 
 **Checkpoint**: Conversation history displays correctly in popup
 
@@ -140,9 +140,9 @@
 
 ### Implementation for User Story 6
 
-- [ ] T030 [US6] Implement theme parameter support (auto, light, dark) in voice_mode/utils/notify_popup.py
-- [ ] T031 [US6] Apply ThemeColors to all widgets (bg, fg, input_bg, button_bg) in voice_mode/utils/notify_popup.py
-- [ ] T032 [US6] Connect detect_dark_mode() to auto theme selection in voice_mode/utils/notify_popup.py
+- [x] T030 [US6] Implement theme parameter support (auto, light, dark) in voice_mode/utils/notify_popup.py
+- [x] T031 [US6] Apply ThemeColors to all widgets (bg, fg, input_bg, button_bg) in voice_mode/utils/notify_popup.py
+- [x] T032 [US6] Connect detect_dark_mode() to auto theme selection in voice_mode/utils/notify_popup.py
 
 **Checkpoint**: Popup correctly matches system theme
 
@@ -156,8 +156,8 @@
 
 ### Implementation for User Story 7
 
-- [ ] T033 [US7] Add chime_enabled parameter support (default: false) in voice_mode/tools/notify.py
-- [ ] T034 [US7] Integrate with existing play_chime_start/play_chime_end from voice_mode.core in voice_mode/tools/notify.py
+- [x] T033 [US7] Add chime_enabled parameter support (default: false) in voice_mode/tools/notify.py
+- [x] T034 [US7] Integrate with existing play_chime_start/play_chime_end from voice_mode.core in voice_mode/tools/notify.py
 
 **Checkpoint**: Optional sound feedback works when enabled
 
@@ -167,13 +167,13 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T035 [P] Implement timeout parameter support (5-300 seconds) with auto-close in voice_mode/utils/notify_popup.py
-- [ ] T036 [P] Implement concurrent popup handling (new popup closes existing, returns cancelled) in voice_mode/utils/notify_popup.py
-- [ ] T037 Add title parameter support for custom window title in voice_mode/utils/notify_popup.py
-- [ ] T038 Add comprehensive docstrings and type hints to all functions in voice_mode/tools/notify.py
-- [ ] T039 [P] Add comprehensive docstrings and type hints to all functions in voice_mode/utils/notify_popup.py
-- [ ] T040 Run quickstart.md validation scenarios manually
-- [ ] T041 Update voice_mode module exports if needed for notify tool discovery
+- [x] T035 [P] Implement timeout parameter support (5-300 seconds) with auto-close in voice_mode/utils/notify_popup.py
+- [x] T036 [P] Implement concurrent popup handling (new popup closes existing, returns cancelled) in voice_mode/utils/notify_popup.py
+- [x] T037 Add title parameter support for custom window title in voice_mode/utils/notify_popup.py
+- [x] T038 Add comprehensive docstrings and type hints to all functions in voice_mode/tools/notify.py
+- [x] T039 [P] Add comprehensive docstrings and type hints to all functions in voice_mode/utils/notify_popup.py
+- [x] T040 Run quickstart.md validation scenarios manually
+- [x] T041 Update voice_mode module exports if needed for notify tool discovery
 
 ---
 
