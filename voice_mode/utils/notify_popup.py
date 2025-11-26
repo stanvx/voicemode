@@ -196,19 +196,7 @@ config = data["config"]
 history = data["history"]
 wait_for_response = data["wait_for_response"]
 
-try:
-    import customtkinter as ctk
-except ImportError:
-    # Fallback to basic tkinter if customtkinter not available
-    import tkinter as tk
-    result = {"type": "dismissed", "response": None}
-    root = tk.Tk()
-    root.title("VoiceMode")
-    tk.Label(root, text="CustomTkinter not installed").pack(padx=20, pady=20)
-    root.after(2000, root.quit)
-    root.mainloop()
-    print(json.dumps(result))
-    sys.exit(0)
+import customtkinter as ctk
 
 # Theme detection
 def detect_dark_mode():
@@ -294,17 +282,11 @@ class MarkdownBubble(ctk.CTkFrame):
 
         super().__init__(master, fg_color=bg_color, corner_radius=16, **kwargs)
 
-        # Calculate height based on content - more compact
-        lines = text.count("\\n") + 1
-        char_lines = len(text) // 40 + 1  # Reduced from 50 for tighter layout
-        estimated_height = min((lines + char_lines) * 18 + 20, 300)  # Reduced from 22+30, capped at 300
-
         self.textbox = ctk.CTkTextbox(
             self,
             text_color=colors.user_bubble_fg if is_user else colors.assistant_bubble_fg,
             fg_color="transparent",
             font=FONT_MAIN,
-            height=estimated_height,
             width=width,
             wrap="word",
             activate_scrollbars=False,
@@ -320,17 +302,21 @@ class MarkdownBubble(ctk.CTkFrame):
             lmargin1=8,
             lmargin2=8,
             rmargin=8,
-            spacing1=4,
-            spacing3=4,
+            spacing1=6,
+            spacing3=6,
         )
         self.textbox._textbox.tag_configure("bold", font=FONT_BOLD)
+        self.textbox._textbox.tag_configure("inline_code", font=FONT_CODE, background=colors.code_bg, foreground=colors.code_fg)
 
         self._render_markdown(text)
         self.textbox.configure(state="disabled")
 
+        # Calculate actual height based on rendered content
+        self._calculate_height(text)
+
     def _render_markdown(self, text):
-        """Parse and render markdown (code blocks and bold)."""
-        # Split by code blocks
+        """Parse and render markdown (code blocks, bold, lists, inline code)."""
+        # Split by code blocks first
         parts = re.split(r"(```[\\s\\S]*?```)", text)
 
         for part in parts:
@@ -343,13 +329,58 @@ class MarkdownBubble(ctk.CTkFrame):
                     code = code[first_newline + 1:]
                 self.textbox._textbox.insert("end", "\\n" + code + "\\n", "code")
             else:
-                # Process bold text
-                bold_parts = re.split(r"(\\*\\*[^*]+\\*\\*)", part)
-                for subpart in bold_parts:
-                    if subpart.startswith("**") and subpart.endswith("**"):
+                # Process inline markdown
+                self._render_inline_markdown(part)
+
+    def _render_inline_markdown(self, text):
+        """Render inline markdown (bold, inline code, lists)."""
+        # Handle lists
+        lines = text.split("\\n")
+        for i, line in enumerate(lines):
+            if line.strip().startswith(("- ", "* ", "+ ")):
+                # Bullet point
+                self.textbox._textbox.insert("end", "  • " + line[2:].strip())
+            elif re.match(r"^\\d+\\.", line.strip()):
+                # Numbered list
+                self.textbox._textbox.insert("end", "  " + line.strip())
+            else:
+                # Process inline formatting: bold, inline code
+                inline_parts = re.split(r"(`[^`]+`|\\*\\*[^*]+\\*\\*)", line)
+                for subpart in inline_parts:
+                    if subpart.startswith("`") and subpart.endswith("`"):
+                        # Inline code
+                        self.textbox._textbox.insert("end", subpart[1:-1], "inline_code")
+                    elif subpart.startswith("**") and subpart.endswith("**"):
+                        # Bold
                         self.textbox._textbox.insert("end", subpart[2:-2], "bold")
                     else:
+                        # Plain text
                         self.textbox._textbox.insert("end", subpart)
+
+            # Add newline except for last line
+            if i < len(lines) - 1:
+                self.textbox._textbox.insert("end", "\\n")
+
+    def _calculate_height(self, text):
+        """Calculate bubble height based on text content."""
+        # Count actual lines in the text
+        lines = text.count("\\n") + 1
+
+        # For code blocks and complex formatting, add extra lines
+        has_code_block = "```" in text
+        has_inline_code = "`" in text
+
+        extra_lines = 2 if has_code_block else 0
+        extra_lines += 1 if has_inline_code else 0
+
+        # Calculate height: base 20px per line + padding
+        line_height = 20
+        padding = 20  # Top + bottom padding
+        estimated_height = (lines + extra_lines) * line_height + padding
+
+        # Apply constraints: min 40px, max 400px
+        final_height = max(40, min(estimated_height, 400))
+        self.textbox.configure(height=final_height)
 
 
 class VoiceModePopup(ctk.CTk):
@@ -396,7 +427,7 @@ class VoiceModePopup(ctk.CTk):
 
         # Header
         header = ctk.CTkFrame(self, fg_color="transparent", height=50)
-        header.grid(row=0, column=0, sticky="ew", padx=20, pady=(15, 5))
+        header.grid(row=0, column=0, sticky="ew", padx=20, pady=(16, 10))
         header.grid_propagate(False)
 
         ctk.CTkLabel(
@@ -404,7 +435,7 @@ class VoiceModePopup(ctk.CTk):
             text="✨ VoiceMode Chat",
             font=FONT_BOLD,
             text_color=colors.text_primary,
-        ).pack(side="left")
+        ).pack(side="left", anchor="w")
 
         # Chat area
         self.chat_area = ctk.CTkScrollableFrame(
@@ -430,19 +461,19 @@ class VoiceModePopup(ctk.CTk):
         # Input area
         if wait_for_response:
             input_frame = ctk.CTkFrame(self, fg_color="transparent")
-            input_frame.grid(row=2, column=0, sticky="ew", padx=20, pady=(5, 10))
+            input_frame.grid(row=2, column=0, sticky="ew", padx=20, pady=(10, 16))
 
             self.input_field = ctk.CTkTextbox(
                 input_frame,
                 height=60,
-                corner_radius=16,
-                border_width=1,
+                corner_radius=14,
+                border_width=1.5,
                 border_color=colors.input_border,
                 fg_color=colors.input_bg,
                 text_color=colors.input_fg,
                 font=FONT_MAIN,
             )
-            self.input_field.pack(fill="both", side="left", expand=True, padx=(0, 10))
+            self.input_field.pack(fill="both", side="left", expand=True, padx=(0, 12))
 
             # Send button
             send_btn = ctk.CTkButton(
@@ -450,8 +481,9 @@ class VoiceModePopup(ctk.CTk):
                 text="→",
                 width=50,
                 height=50,
-                corner_radius=25,
+                corner_radius=14,
                 fg_color=colors.accent,
+                hover_color=colors.accent_hover,
                 font=("SF Pro Text" if IS_MACOS else "Segoe UI", 20, "bold"),
                 command=self._on_submit,
             )
@@ -469,13 +501,14 @@ class VoiceModePopup(ctk.CTk):
         else:
             # Non-interactive mode - show dismiss button only
             footer = ctk.CTkFrame(self, fg_color="transparent", height=50)
-            footer.grid(row=2, column=0, sticky="ew", padx=20, pady=(5, 20))
+            footer.grid(row=2, column=0, sticky="ew", padx=20, pady=(10, 16))
 
             ctk.CTkButton(
                 footer,
                 text="Dismiss",
                 corner_radius=12,
                 fg_color=colors.accent,
+                hover_color=colors.accent_hover,
                 font=FONT_MAIN,
                 command=self._on_dismiss,
             ).pack(side="right")
@@ -503,12 +536,12 @@ class VoiceModePopup(ctk.CTk):
     def _add_message(self, text, is_user=False):
         """Add a message bubble to the chat."""
         container = ctk.CTkFrame(self.chat_area, fg_color="transparent")
-        container.pack(fill="x", pady=5, padx=5)
+        container.pack(fill="x", pady=8, padx=8)
 
         if not is_user:
             # Avatar for assistant
             avatar_frame = ctk.CTkFrame(container, fg_color="transparent")
-            avatar_frame.pack(side="left", anchor="n", padx=(0, 8))
+            avatar_frame.pack(side="left", anchor="n", padx=(0, 12))
 
             ctk.CTkLabel(
                 avatar_frame,
@@ -521,9 +554,9 @@ class VoiceModePopup(ctk.CTk):
             text,
             is_user=is_user,
             colors=self.colors,
-            width=350 if is_user else 380,
+            width=360 if is_user else 380,
         )
-        bubble.pack(side="right" if is_user else "left", anchor="e" if is_user else "w")
+        bubble.pack(side="right" if is_user else "left", anchor="e" if is_user else "w", padx=5)
 
         # Scroll to bottom
         self.after(50, lambda: self.chat_area._parent_canvas.yview_moveto(1.0))
